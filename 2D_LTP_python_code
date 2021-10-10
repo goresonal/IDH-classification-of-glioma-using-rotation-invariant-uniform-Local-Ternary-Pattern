@@ -1,0 +1,440 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[ ]:
+
+
+#function to shift the number to right
+def rightshift(num, shift):
+    #right shift the number to right
+    #left shift numbers and mask the MSB for 8 bit number if rigt-shift condition(1st condition) is false
+    return (num >> shift) | ((num << (8 - shift)&0xFF))
+
+
+# In[ ]:
+
+
+#to count number of set bits 
+def countSetBits(code):
+    count=0
+    while(code!=0):
+        if(code & 0x01):
+            count=count + 1
+        code=code>>1
+    return count
+
+
+# In[ ]:
+
+
+#to check the given binary code is uniform (containing at max 2 0 to 1/1 to 0 transitions) or not
+#rigtshift the given code by 1 and xor it with original code, then count number of set bits from xored code, if count<=2 then uniform
+def checkUniform(code):
+    b = rightshift(code,1)
+    c = code ^ b
+    count=countSetBits(c)
+    if (count <=2):
+        return True
+    else:
+        return False
+
+
+# In[ ]:
+
+
+#3x3 neighborhood will have 8 neighborhood pixels
+#all non uniform codes are assigned to 58, there are total 58 uniform codes (0 to 57) and remaining are non-uniform
+def initUniform():
+    lookup=[item for item in range(0,256)]
+    index=0
+    for i in range(0,256):
+        status=checkUniform(i)
+        if(status==True):
+            lookup[i]=index
+            index=index+1
+        else:
+            lookup[i]=58
+    return lookup
+
+
+# In[ ]:
+
+
+lookup=[]
+lookup=initUniform()
+print(lookup)
+
+
+# In[ ]:
+
+
+l1=[item for item in range(0,256)]
+l2=[0 for item in range(0,256)]
+dict_flag=dict(zip(l1,l2))
+print(dict_flag)
+l3=[item for item in range(0,256)]
+lookup_dict=dict(zip(l3,lookup))
+print(lookup_dict)
+
+
+# In[ ]:
+
+
+lookup_dict[0]=0
+dict_flag[0]=1
+lookup_dict[255]=8
+dict_flag[255]=1
+for i in range(0,256):
+    if(lookup_dict[i]==58):
+        lookup_dict[i]=9
+        dict_flag[i]=1
+
+print(lookup_dict)
+print(dict_flag)
+
+
+# In[ ]:
+
+
+temp=[0,0,0,0,0,0,0,0,0]
+lbp_code=1
+for i in range(1,255):
+    
+    if(lookup_dict[i]!=9 and dict_flag[i]==0):
+        temp[0]=i
+        for j in range(1,9):
+            temp[j]=rightshift(temp[j-1],1)
+        print(temp)
+        #lbp_code=min(temp)
+        #print(lbp_code)
+        for ii in range(0,8):
+            lookup_dict[temp[ii]]=lbp_code
+            dict_flag[temp[ii]]=1
+        print(lbp_code)
+        lbp_code=lbp_code+1
+
+
+# In[ ]:
+
+
+def get_pixel(img, center, x, y,threshold):
+    new_value = 0
+    try:
+        #global or local intensity as follows:
+        if img[x][y] >= threshold:
+            new_value = 1
+        # for intensity difference as follows
+        #if abs(center-img[x][y]) >= threshold:
+        #    new_value = 1
+        if (img[x][y]-center)>=threshold:
+            new_value=1
+        elif (img[x][y]-center)< -threshold:
+            new_value = -1
+        elif (-threshold) < (img[x][y]-center) < threshold:
+            new_value=0
+        
+    except:
+        pass
+    
+    
+    return new_value
+
+
+# In[ ]:
+
+
+def get_pixel_val(img, center, x, y):
+    new_value = 0
+    try:
+        new_value=img[x][y]
+    except:
+        pass
+    return new_value
+
+
+# In[ ]:
+
+
+def lbp_calculated_pixel(img, x, y,threshold):
+    '''
+     64 | 128 |   1
+    ----------------
+     32 |   0 |   2
+    ----------------
+     16 |   8 |   4    
+    '''    
+    lval=[]
+    addition=0
+    cnt_nonzero=0
+    center = img[x][y]
+    val=[]
+    val.append(get_pixel_val(img, center, x-1, y+1))     # top_right
+    val.append(get_pixel_val(img, center, x, y+1))       # right
+    val.append(get_pixel_val(img, center, x+1, y+1))     # bottom_right
+    val.append(get_pixel_val(img, center, x+1, y))       # bottom
+    val.append(get_pixel_val(img, center, x+1, y-1))     # bottom_left
+    val.append(get_pixel_val(img, center, x, y-1))       # left
+    val.append(get_pixel_val(img, center, x-1, y-1))     # top_left
+    val.append(get_pixel_val(img, center, x-1, y))       # top
+    #local average intensity
+    #threshold=sum(val)/len(val)
+    '''
+    for ii in range(len(val)):
+        if val[ii] > 0:
+            addition=addition+val[ii]
+            cnt_nonzero=cnt_nonzero+1
+    if cnt >0 :
+        threshold=addition/cnt
+    else:
+        threshold=sum(val)/len(val)
+    '''
+    #intensity difference =5
+    #threshold=5
+    
+    #normal LBP
+    #threshold=center
+    
+    #for global average threshold will be as it is
+    
+    #for normal LBP (default)
+    #threshold=center
+    
+    val_ar = []
+    val_ar.append(get_pixel(img, center, x-1, y+1,threshold))     # top_right
+    val_ar.append(get_pixel(img, center, x, y+1,threshold))       # right
+    val_ar.append(get_pixel(img, center, x+1, y+1,threshold))     # bottom_right
+    val_ar.append(get_pixel(img, center, x+1, y,threshold))       # bottom
+    val_ar.append(get_pixel(img, center, x+1, y-1,threshold))     # bottom_left
+    val_ar.append(get_pixel(img, center, x, y-1,threshold))       # left
+    val_ar.append(get_pixel(img, center, x-1, y-1,threshold))     # top_left
+    val_ar.append(get_pixel(img, center, x-1, y,threshold))       # top
+    
+    val_upperLTP=[]
+    val_lowerLTP=[]
+    for i in range(0,len(val_ar)):
+        if(val_ar[i]==-1):
+            val_upperLTP.append(0)
+        else:
+            val_upperLTP.append(val_ar[i])
+    
+    for i in range(0,len(val_ar)):
+        if (val_ar[i]==-1):
+            val_lowerLTP.append(1)
+        elif (val_ar[i]==1):
+            val_lowerLTP.append(0)
+        else:
+            val_lowerLTP.append(val_ar[i])
+    
+    power_val = [1, 2, 4, 8, 16, 32, 64, 128]
+    #val = 0
+    val_upper=0
+    val_lower=0
+    #for i in range(len(val_ar)):
+    #    val += val_ar[i] * power_val[i]
+    
+    for i in range(0,len(val_upperLTP)):
+        val_upper += val_upperLTP[i] * power_val[i]
+        
+    for i in range(0,len(val_lowerLTP)):
+        val_lower += val_lowerLTP[i] * power_val[i]
+        
+    
+    #return val 
+    return (lookup_dict[val_upper], lookup_dict[val_lower])
+
+
+# In[ ]:
+
+
+#lbp_vector=np.zeros((4,10),dtype=np.int64)
+lbp_vector=[]
+lbp_class1=[]
+lbp_class2=[]
+stat_vector1=[]
+stat_vector2=[]
+
+print(no_images)
+for images in range(0,no_images):
+#for images in range(0,2):
+    print(images)
+    hist=[]
+   
+    cnt1=0
+    min_i=10000000
+    min_j=10000000
+    max_i=0
+    max_j=0
+    for i in range(0+(240*images),240+(240*images)):
+        mm=0
+        for j in range(0,240):
+            if(im_graymask[i][j]>0):
+                if(i<min_i):
+                    min_i=i
+                if(j<min_j):
+                    min_j=j
+                if(i>max_i):
+                    max_i=i
+                if(j>max_j):
+                    max_j=j
+            #print(im_graymask[i][j])
+                cnt1=cnt1+1
+                img_temp[ll][mm]=1
+                cnt22=cnt22+1
+            else:
+                img_temp[ll][mm]=0
+                cnt11=cnt11+1
+            mm=mm+1
+        ll=ll+1
+    #print(cnt11,cnt22)
+    #plt.imshow(img_temp,cmap='gray')
+    #plt.show()
+    label_img = label(img_temp)
+    #plt.imshow(label_img,cmap='gray')
+    #plt.show()
+    
+    print(min_i,min_j,max_i,max_j)  
+    
+   
+    
+    #print(cnt1)
+    #To save cropped gray mask
+    cnt2=cnt3=0
+    im_temp=np.zeros((max_i-min_i+1,max_j-min_j+1))
+    im_temp1=np.zeros((max_i-min_i+1,max_j-min_j+1))
+    l=0
+    m=0
+    im_temp_excludezeros=[]
+    for i in range(min_i,max_i+1):
+        m=0
+        for j in range(min_j,max_j+1):
+            im_temp[l][m]=im_graymask[i][j]
+            im_temp1[l][m]=im_graymask[i][j]
+            m=m+1
+            if(im_graymask[i][j]==0):
+                cnt2=cnt2+1
+            if(im_graymask[i][j]>0):
+                cnt3=cnt3+1
+                im_temp_excludezeros.append(im_graymask[i][j])
+            
+        l=l+1
+    #print(cnt2,cnt3,l,m)
+    plt.imshow(im_temp,cmap='gray')
+    plt.show()
+    
+    '''
+    lbp = feature.local_binary_pattern(im_temp, 8,1, method="uniform")
+    plt.imshow(lbp,cmap='gray')
+    plt.show()
+    ''' 
+    
+    #(hist, _) = np.histogram(lbp.ravel(),bins=np.arange(0, 257),range=(0, 256))
+    #(hist, _) = np.histogram(lbp.ravel(),bins=np.arange(0, 8 + 3),range=(0, 8 + 2))
+    #plt.plot(hist)
+    #plt.show()
+    
+    #(hist_img, _) = np.histogram(im_temp.ravel(),bins=np.arange(0, 255),range=(0, 255))
+    #plt.plot(hist_img)
+    #plt.show()
+    '''
+    lbp = feature.local_binary_pattern(im_temp, 8,1, method="uniform")
+    (hist, _) = np.histogram(lbp.ravel(),bins=np.arange(0, 8 + 3),range=(0, 8 + 2))
+    plt.imshow(lbp,cmap='gray')
+    plt.show()
+    plt.plot(hist)
+    plt.show()
+    '''
+    '''
+    print(im_temp.mean())
+    print("mean")
+    print(im_temp.mean())
+    print(im_temp.std())
+    print(im_temp.var())
+    print(skew(np.asarray(im_temp_excludezeros).ravel()))
+    print(kurtosis(np.asarray(im_temp_excludezeros).ravel()))
+    '''
+    
+    #bare implementation of LBP
+    
+    height=im_temp.shape[0]
+    width=im_temp.shape[1]
+    print(im_temp.shape,height,width)
+    #to show the histogram of an original image
+    (hist_img_excludezeros, _) = np.histogram(im_temp_excludezeros,bins=np.arange(0, 257),range=(0, 256))
+    
+    #plt.plot(hist_img_excludezeros)
+    #plt.show()
+    
+   
+   
+    img_bare_upperltp = np.zeros((height, width), np.uint8)
+    img_bare_lowerltp = np.zeros((height, width), np.uint8)
+    
+    
+    for i1 in range(0, height):
+        for j1 in range(0, width):
+            #img_bare_lbp[i1, j1] = lbp_calculated_pixel(im_temp, i1, j1,im_temp.mean())
+            #img_bare_lbp[i1, j1] = lbp_calculated_pixel(im_temp, i1, j1,mean(im_temp_excludezeros))
+            
+            #LTP with Threshold =5
+            val_upper, val_lower = lbp_calculated_pixel(im_temp, i1, j1,3)
+            img_bare_upperltp[i1, j1] = val_upper 
+            img_bare_lowerltp[i1, j1] = val_lower
+            
+           
+
+            
+    plt.imshow(img_bare_upperltp,cmap='gray')
+    plt.show()
+    (hist_upperLTP, _) = np.histogram(img_bare_upperltp.ravel(),bins=np.arange(0, 11),range=(0, 10))
+    plt.plot(hist_upperLTP)
+    plt.show()
+    
+    
+    plt.imshow(img_bare_lowerltp,cmap='gray')
+    plt.show()
+    (hist_lowerLTP, _) = np.histogram(img_bare_lowerltp.ravel(),bins=np.arange(0, 11),range=(0, 10))
+    plt.plot(hist_lowerLTP)
+    plt.show()
+    
+   
+    
+   
+    
+    #lbp = feature.local_binary_pattern(im_temp, 8,3, method="default")
+    #n_bins = int(lbp.max() + 1)
+    #hist, _ = np.histogram(lbp, density=True, bins=n_bins, range=(0, n_bins))
+    # normalize the histogram
+    #hist = hist.astype("float")
+    #hist /= (hist.sum() + eps)
+    
+    #hist=list(hist)
+    hist_upperLTP=list(hist_upperLTP)
+    hist_lowerLTP=list(hist_lowerLTP)
+    
+    for i in range(0,len(hist_upperLTP)):
+        hist.append(hist_upperLTP[i])
+    for i in range(0,len(hist_lowerLTP)):
+        hist.append(hist_lowerLTP[i])
+    
+     
+    
+    lbp_vector.append(hist)
+
+
+# In[ ]:
+
+
+lbp_array=np.asarray(lbp_vector)
+
+
+# In[ ]:
+
+
+print(type(lbp_array),lbp_array.shape)
+
+
+# In[ ]:
+
+
+np.save('test_LTP_Threshold5.npy', lbp_array)
+
